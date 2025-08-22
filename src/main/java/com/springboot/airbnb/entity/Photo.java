@@ -17,13 +17,13 @@ public class Photo {
 
     private String photoName;
 
-    @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="hotelId")
     @JsonIgnore
     private Hotel hotel;
 
 
-    @ManyToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="roomId")
     @JsonIgnore
     private Room room;
