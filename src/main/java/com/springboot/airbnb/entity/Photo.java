@@ -27,4 +27,5 @@ public class Photo {
     @JoinColumn(name="roomId")
     @JsonIgnore
     private Room room;
+
 }
