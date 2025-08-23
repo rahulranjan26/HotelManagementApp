@@ -15,6 +15,7 @@ import java.util.List;
  */
 @Data
 @ToString
+@Builder
 public class RoomDto  {
     private  Long roomId;
     private  String type;

@@ -4,11 +4,12 @@ import com.springboot.airbnb.dto.HotelDto;
 import com.springboot.airbnb.entity.Amnety;
 import com.springboot.airbnb.entity.Hotel;
 import com.springboot.airbnb.entity.Photo;
-import com.springboot.airbnb.repository.AmnetyRepository;
+import com.springboot.airbnb.entity.Room;
 import com.springboot.airbnb.repository.HotelRepository;
-import com.springboot.airbnb.repository.PhotoRepository;
+import com.springboot.airbnb.repository.InventoryRepository;
 import com.springboot.airbnb.service.HotelService;
 import com.springboot.airbnb.exceptions.ResourceNotFoundException;
+import com.springboot.airbnb.service.InventoryService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +25,7 @@ public class HotelServiceImpl implements HotelService {
 
     private final HotelRepository hotelRepository;
     public final ModelMapper modelMapper;
+    public final InventoryService inventoryService;
 
 
     @Override
@@ -130,6 +132,22 @@ public class HotelServiceImpl implements HotelService {
         }
         Hotel savedHotel = hotelRepository.save(hotel);
         return modelMapper.map(savedHotel, HotelDto.class);
+
+    }
+
+    @Override
+    public HotelDto activateHotelById(Long hotelId) {
+        log.info("Activating hotel with hotelId {}", hotelId);
+        Hotel hotel = hotelRepository.findById(hotelId).orElseThrow(() -> new ResourceNotFoundException("Hotel with hotelid not found: " + hotelId));
+        hotel.setIsActive(true);
+        Hotel savedHotel = hotelRepository.save(hotel);
+        for (var room : hotel.getRooms()) {
+            inventoryService.initializeInventoryForAYear(room);
+        }
+        return modelMapper.map(savedHotel, HotelDto.class);
+
+        //ToDo : create inventory for all the rooms in hotel
+
 
     }
 }

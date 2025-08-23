@@ -3,14 +3,15 @@ package com.springboot.airbnb.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 @Entity
 @Getter
 @Setter
 @Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class Amnety {
 
     @Id

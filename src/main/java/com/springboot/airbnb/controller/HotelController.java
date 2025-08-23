@@ -48,4 +48,10 @@ public class HotelController {
         return new ResponseEntity<>(hotelService.deletePhotoForHotelById(hotelId,photoId), HttpStatus.OK);
     }
 
+    @PatchMapping(path="/activate/{hotelId}")
+    public ResponseEntity<HotelDto> activateHotelById(@PathVariable Long hotelId) {
+        log.info("Activate hotel with hotelId:{}", hotelId);
+        return new ResponseEntity<>(hotelService.activateHotelById(hotelId), HttpStatus.OK);
+    }
+
 }

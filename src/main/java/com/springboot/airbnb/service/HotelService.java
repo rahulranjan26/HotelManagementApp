@@ -13,4 +13,6 @@ public interface HotelService {
     Boolean deleteHotelById(Long hotelId);
 
     HotelDto deletePhotoForHotelById(Long hotelId, Long photoId);
+
+    HotelDto activateHotelById(Long hotelId);
 }

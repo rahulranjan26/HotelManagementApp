@@ -44,7 +44,7 @@ public class Hotel {
     private HotelContactInfo hotelContactInfo;
     
 
-    @OneToMany(mappedBy = "hotel", orphanRemoval=true)
+    @OneToMany(mappedBy = "hotel", orphanRemoval=true, cascade = CascadeType.ALL)
     private List<Room> rooms;
 
     @Column(nullable=false)
@@ -52,6 +52,8 @@ public class Hotel {
 
     @ManyToOne
     private User owner;
+
+
 
 
 }
