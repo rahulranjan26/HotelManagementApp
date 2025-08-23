@@ -11,4 +11,6 @@ public interface HotelService {
     HotelDto updateHotelById(Long hotelId,HotelDto hotelDto);
 
     Boolean deleteHotelById(Long hotelId);
+
+    HotelDto deletePhotoForHotelById(Long hotelId, Long photoId);
 }

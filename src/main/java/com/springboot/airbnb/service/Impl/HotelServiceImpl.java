@@ -115,4 +115,21 @@ public class HotelServiceImpl implements HotelService {
 
         // Delete the future inventories --> TODO
     }
+
+    @Override
+    public HotelDto deletePhotoForHotelById(Long hotelId, Long photoId) {
+        log.info("Deleting the photo with with photoId {} in hotel with hotelId {}", photoId, hotelId);
+        Hotel hotel = hotelRepository.findById(hotelId).orElseThrow(() -> new ResourceNotFoundException("Hotel with hotelid not found: " + hotelId));
+        List<Photo> photos = hotel.getPhotos();
+        for (int i = 0; i < photos.size(); i++) {
+            Photo photo = photos.get(i);
+            if (photo.getPhotoId().equals(photoId)) {
+                photos.remove(photo);
+                break;
+            }
+        }
+        Hotel savedHotel = hotelRepository.save(hotel);
+        return modelMapper.map(savedHotel, HotelDto.class);
+
+    }
 }

@@ -42,4 +42,10 @@ public class HotelController {
         return new ResponseEntity<>(hotelService.deleteHotelById(hotelId), HttpStatus.OK);
     }
 
+    @PatchMapping(path="/{hotelId}/deletephoto/{photoId}")
+    public ResponseEntity<HotelDto> deletePhotoForHotelById(@PathVariable Long hotelId, @PathVariable Long photoId) {
+        log.info("Deleting hotel with hotelId:{}", hotelId);
+        return new ResponseEntity<>(hotelService.deletePhotoForHotelById(hotelId,photoId), HttpStatus.OK);
+    }
+
 }
