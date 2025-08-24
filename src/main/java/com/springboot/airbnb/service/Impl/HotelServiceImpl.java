@@ -112,6 +112,9 @@ public class HotelServiceImpl implements HotelService {
     public Boolean deleteHotelById(Long hotelId) {
         log.info("Deleting the hotel with hotel Id:{}", hotelId);
         Hotel hotel = hotelRepository.findById(hotelId).orElseThrow(() -> new ResourceNotFoundException("the hotel was not found with hotel id: " + hotelId));
+        for (var room : hotel.getRooms()) {
+            inventoryService.deleteInventory(room);
+        }
         hotelRepository.deleteById(hotelId);
         return true;
 
