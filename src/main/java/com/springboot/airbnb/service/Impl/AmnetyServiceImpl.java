@@ -6,6 +6,7 @@ import com.springboot.airbnb.entity.Hotel;
 import com.springboot.airbnb.entity.Room;
 import com.springboot.airbnb.repository.AmnetyRepository;
 import com.springboot.airbnb.service.AmnetyService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Service;
 @Service
 @Slf4j
 @RequiredArgsConstructor
+@Transactional
 public class AmnetyServiceImpl implements AmnetyService {
 
     private final AmnetyRepository amnetyRepository;

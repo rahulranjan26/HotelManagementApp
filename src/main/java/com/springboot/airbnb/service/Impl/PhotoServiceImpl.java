@@ -5,6 +5,7 @@ import com.springboot.airbnb.entity.Photo;
 import com.springboot.airbnb.entity.Room;
 import com.springboot.airbnb.repository.PhotoRepository;
 import com.springboot.airbnb.service.PhotoService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Transactional
 public class PhotoServiceImpl implements PhotoService {
 
     private final PhotoRepository photoRepository;

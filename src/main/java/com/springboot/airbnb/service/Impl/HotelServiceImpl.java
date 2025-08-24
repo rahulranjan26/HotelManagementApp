@@ -4,9 +4,7 @@ import com.springboot.airbnb.dto.HotelDto;
 import com.springboot.airbnb.entity.Amnety;
 import com.springboot.airbnb.entity.Hotel;
 import com.springboot.airbnb.entity.Photo;
-import com.springboot.airbnb.entity.Room;
 import com.springboot.airbnb.repository.HotelRepository;
-import com.springboot.airbnb.repository.InventoryRepository;
 import com.springboot.airbnb.service.HotelService;
 import com.springboot.airbnb.exceptions.ResourceNotFoundException;
 import com.springboot.airbnb.service.InventoryService;
@@ -21,6 +19,7 @@ import java.util.List;
 @Service
 @Slf4j
 @RequiredArgsConstructor
+@Transactional
 public class HotelServiceImpl implements HotelService {
 
     private final HotelRepository hotelRepository;
@@ -117,8 +116,6 @@ public class HotelServiceImpl implements HotelService {
         }
         hotelRepository.deleteById(hotelId);
         return true;
-
-        // Delete the future inventories --> TODO
     }
 
     @Override
@@ -134,6 +131,7 @@ public class HotelServiceImpl implements HotelService {
             }
         }
         Hotel savedHotel = hotelRepository.save(hotel);
+
         return modelMapper.map(savedHotel, HotelDto.class);
 
     }
@@ -148,8 +146,6 @@ public class HotelServiceImpl implements HotelService {
             inventoryService.initializeInventoryForAYear(room);
         }
         return modelMapper.map(savedHotel, HotelDto.class);
-
-        //ToDo : create inventory for all the rooms in hotel
 
 
     }

@@ -10,8 +10,10 @@ import com.springboot.airbnb.repository.HotelRepository;
 import com.springboot.airbnb.repository.PhotoRepository;
 import com.springboot.airbnb.repository.RoomRepository;
 import com.springboot.airbnb.service.AmnetyService;
+import com.springboot.airbnb.service.InventoryService;
 import com.springboot.airbnb.service.PhotoService;
 import com.springboot.airbnb.service.RoomService;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
@@ -24,16 +26,17 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Slf4j
+@Transactional
 public class RoomServiceImpl implements RoomService {
 
     public final RoomRepository roomRepository;
     private final PhotoService photoService;
     private final AmnetyService amnetyService;
-    private final ModelMapper modelMapper;
+    private final InventoryService inventoryService;
     private final HotelRepository hotelRepository;
 
     @Override
-    public RoomDto createNewRoom(Long hotelId,RoomDto roomDto) {
+    public RoomDto createNewRoom(Long hotelId, RoomDto roomDto) {
         log.info("So we are creating a new room");
         Room newRoom = Room.builder()
                 .type(roomDto.getType())
@@ -45,16 +48,21 @@ public class RoomServiceImpl implements RoomService {
         newRoom.setHotel(hotel);
         Room savedRoom = roomRepository.save(newRoom);
         List<Photo> createdPhotos = new ArrayList<>();
-        for (var pic: roomDto.getPhotos()) {
+        for (var pic : roomDto.getPhotos()) {
             Photo newPhoto = photoService.createNewPhotoForRoom(savedRoom, pic);
             createdPhotos.add(newPhoto);
         }
 
         List<Amnety> createdAmenities = new ArrayList<>();
-        for (var amnety: roomDto.getAmenities()) {
+        for (var amnety : roomDto.getAmenities()) {
             Amnety newAmnety = amnetyService.createNewAmnetyForRoom(savedRoom, amnety);
             createdAmenities.add(newAmnety);
         }
+
+        if (hotel.getIsActive()) {
+            inventoryService.initializeInventoryForAYear(savedRoom);
+        }
+
         return RoomDto.builder()
                 .roomId(savedRoom.getRoomId())
                 .type(savedRoom.getType())
@@ -72,7 +80,7 @@ public class RoomServiceImpl implements RoomService {
         Hotel hotel = hotelRepository.findById(hotelId).orElseThrow(() -> new ResourceNotFoundException("Hotel not found with id:" + hotelId));
         List<Room> rooms = roomRepository.findByHotel(hotel);
         List<RoomDto> roomDtos = new ArrayList<>();
-        for (var room: rooms) {
+        for (var room : rooms) {
             RoomDto dto = RoomDto.builder()
                     .roomId(room.getRoomId())
                     .type(room.getType())
@@ -89,7 +97,7 @@ public class RoomServiceImpl implements RoomService {
 
     @Override
     public RoomDto getRoomById(Long roomId) {
-        log.info("Room with Id: {} is being queries",roomId);
+        log.info("Room with Id: {} is being queries", roomId);
         Room room = roomRepository.findById(roomId).orElseThrow(() -> new ResourceNotFoundException("Room not found with id:" + roomId));
         RoomDto dto = RoomDto.builder()
                 .roomId(room.getRoomId())
@@ -105,12 +113,12 @@ public class RoomServiceImpl implements RoomService {
 
     @Override
     public Boolean deleteRoomById(Long roomId) {
-        log.info("Room with Id: {} is being deleted",roomId);
+        log.info("Room with Id: {} is being deleted", roomId);
         Room room = roomRepository.findById(roomId).orElseThrow(() -> new ResourceNotFoundException("Room not found with id:" + roomId));
+        inventoryService.deleteInventory(room);
         roomRepository.delete(room);
         return true;
     }
-
 
 
 }
