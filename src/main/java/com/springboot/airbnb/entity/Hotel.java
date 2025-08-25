@@ -1,6 +1,7 @@
 package com.springboot.airbnb.entity;
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.Getter;
@@ -45,6 +46,7 @@ public class Hotel {
     
 
     @OneToMany(mappedBy = "hotel", orphanRemoval=true, cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<Room> rooms;
 
     @Column(nullable=false)

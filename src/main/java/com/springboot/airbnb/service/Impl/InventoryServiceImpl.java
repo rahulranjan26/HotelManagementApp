@@ -1,11 +1,10 @@
 package com.springboot.airbnb.service.Impl;
 
 
-import com.springboot.airbnb.dto.HotelDto;
-import com.springboot.airbnb.dto.HotelSearchRequest;
-import com.springboot.airbnb.entity.Hotel;
-import com.springboot.airbnb.entity.Inventory;
-import com.springboot.airbnb.entity.Room;
+import com.springboot.airbnb.dto.*;
+import com.springboot.airbnb.entity.*;
+import com.springboot.airbnb.exceptions.ResourceNotFoundException;
+import com.springboot.airbnb.repository.HotelMinPriceRepository;
 import com.springboot.airbnb.repository.HotelRepository;
 import com.springboot.airbnb.repository.InventoryRepository;
 import com.springboot.airbnb.repository.RoomRepository;
@@ -22,6 +21,8 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
 
 @Service
 @Slf4j
@@ -32,6 +33,7 @@ public class InventoryServiceImpl implements InventoryService {
     private final InventoryRepository inventoryRepository;
     private final HotelRepository hotelRepository;
     private final RoomRepository roomRepository;
+    private final HotelMinPriceRepository hotelMinPriceRepository;
 
 
     @Override
@@ -55,6 +57,7 @@ public class InventoryServiceImpl implements InventoryService {
                     .totalCount(room.getTotalCount())
                     .surgeFactor(BigDecimal.valueOf(1L))
                     .date(currentDate)
+                    .reservedCount(0)
                     .closed(false)
                     .room(room)
                     .build();
@@ -70,7 +73,7 @@ public class InventoryServiceImpl implements InventoryService {
     }
 
     @Override
-    public Page<HotelDto> searchHotels(HotelSearchRequest hotelSearchRequest) {
+    public Page<HotelPriceDto> searchHotels(HotelSearchRequest hotelSearchRequest) {
         log.info("Searching hotels with request: {}", hotelSearchRequest);
         Pageable pageable = PageRequest.of(hotelSearchRequest.getPage(), hotelSearchRequest.getSize());
         LocalDateTime truncatedStart = hotelSearchRequest.getStartDate();
@@ -79,7 +82,7 @@ public class InventoryServiceImpl implements InventoryService {
         log.info("Final search parameters: city={}, startDate={}, endDate={}, roomsCount={}, dayCount={}",
                 hotelSearchRequest.getCity(), truncatedStart, truncatedEnd,
                 hotelSearchRequest.getRoomsCount(), dateCount);
-        Page<Hotel> hotels = inventoryRepository.findHotelWithAvailableRepository(
+        return hotelMinPriceRepository.findHotelsWithAvailableInventory(
                 hotelSearchRequest.getCity(),
                 truncatedStart,
                 truncatedEnd,
@@ -87,6 +90,44 @@ public class InventoryServiceImpl implements InventoryService {
                 dateCount,
                 pageable
         );
-        return hotels.map((element) -> modelMapper.map(element, HotelDto.class));
     }
+
+    @Override
+    public HotelInfoDto getHotelInfo(Long hotelId) {
+        log.info("Get hotel info with Id :{}", hotelId);
+        Hotel hotel = hotelRepository.findById(hotelId).orElseThrow(() -> new ResourceNotFoundException("The hotel not found with id:" + hotelId));
+        List<RoomDto> rooms = new ArrayList<>();
+        for (var room : hotel.getRooms()) {
+            RoomDto newRoomDto = RoomDto.builder()
+                    .roomId(room.getRoomId())
+                    .amenities(room.getAmenities().stream().map(el ->
+                            Amnety.builder()
+                                    .room(room)
+                                    .amnetyName(el.getAmnetyName())
+                                    .build()
+                    ).toList())
+                    .basePrice(room.getBasePrice())
+                    .capacity(room.getCapacity())
+                    .photos(room.getPhotos().stream().map((el) -> Photo.builder()
+                            .room(room)
+                            .photoName(el.getPhotoName())
+                            .build()).toList())
+                    .totalCount(room.getTotalCount())
+                    .type(room.getType())
+                    .build();
+            rooms.add(newRoomDto);
+        }
+        HotelDto hotelDto = HotelDto.builder()
+                .hotelContactInfo(hotel.getHotelContactInfo())
+                .name(hotel.getName())
+                .hotelId(hotel.getHotelId())
+                .amenities(hotel.getAmenities())
+                .photos(hotel.getPhotos())
+                .city(hotel.getCity())
+                .isActive(hotel.getIsActive())
+                .build();
+        return HotelInfoDto.builder().hotel(hotelDto).rooms(rooms).build();
+    }
+
+
 }

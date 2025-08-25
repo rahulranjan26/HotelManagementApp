@@ -1,10 +1,9 @@
 package com.springboot.airbnb.controller;
 
 
-
-import com.springboot.airbnb.dto.HotelDto;
+import com.springboot.airbnb.dto.HotelInfoDto;
+import com.springboot.airbnb.dto.HotelPriceDto;
 import com.springboot.airbnb.dto.HotelSearchRequest;
-import com.springboot.airbnb.entity.Hotel;
 import com.springboot.airbnb.service.InventoryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -23,9 +22,17 @@ public class HotelBrowseController {
 
 
     @PostMapping(path="/search")
-    public ResponseEntity<Page<HotelDto>> searchHotels(@RequestBody HotelSearchRequest hotelSearchRequest) {
+    public ResponseEntity<Page<HotelPriceDto>> searchHotels(@RequestBody HotelSearchRequest hotelSearchRequest) {
         log.info("Searching hotels");
-        Page<HotelDto> hotel = inventoryService.searchHotels(hotelSearchRequest);
+        var hotel = inventoryService.searchHotels(hotelSearchRequest);
         return ResponseEntity.ok(hotel);
     }
+
+    @GetMapping(path="/{hotelId}/info")
+    public ResponseEntity<HotelInfoDto> getHotelInfo(@PathVariable Long hotelId) {
+        log.info("Getting hotel info for hotelId: {}", hotelId);
+        HotelInfoDto hotelInfo = inventoryService.getHotelInfo(hotelId);
+        return ResponseEntity.ok(hotelInfo);
+    }
+
 }

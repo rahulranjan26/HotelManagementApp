@@ -3,14 +3,16 @@ package com.springboot.airbnb.repository;
 import com.springboot.airbnb.entity.Hotel;
 import com.springboot.airbnb.entity.Inventory;
 import com.springboot.airbnb.entity.Room;
+import jakarta.persistence.LockModeType;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-
-import org.springframework.data.domain.Page;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public interface InventoryRepository extends JpaRepository<Inventory, Long> {
     void deleteInventoryByDateAfterAndRoom(LocalDateTime dateAfter, Room room);
@@ -23,7 +25,7 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
                 select i.hotel from Inventory i
                                     where i.city = :city
                                         and i.date between :startDate and :endDate
-                                        and (i.totalCount - i.bookedCount) >= :roomsCount
+                                        and (i.totalCount - i.bookedCount - i.reservedCount) >= :roomsCount
                                         and i.closed = false
                                     group by i.hotel
                                     having count(distinct i.date) = :dateCount
@@ -37,4 +39,20 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
             Pageable pageable
     );
 
+    @Query("""
+            select i from Inventory i
+            where i.room.roomId = :roomId
+            and i.date between :checkInDate and :checkOutDate
+            and (i.totalCount - i.bookedCount -i.reservedCount) >= :roomsCount
+                        and i.closed = false
+            """)
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    List<Inventory> findTheBookingRangeForGivenDates(
+            @Param("hotelId") Long hotelId,
+            @Param("roomId") Long roomId,
+            @Param("checkInDate") LocalDateTime checkInDate,
+            @Param("checkOutDate") LocalDateTime checkOutDate,
+            @Param("roomsCount") Integer roomsCount);
+
+    List<Inventory> findByHotelAndDateBetween(Hotel hotel, LocalDateTime startDate, LocalDateTime endDate);
 }

@@ -5,9 +5,7 @@ import com.springboot.airbnb.entity.Photo;
 import com.springboot.airbnb.entity.Room;
 import lombok.*;
 
-import java.io.Serializable;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -16,6 +14,8 @@ import java.util.List;
 @Data
 @ToString
 @Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class RoomDto  {
     private  Long roomId;
     private  String type;

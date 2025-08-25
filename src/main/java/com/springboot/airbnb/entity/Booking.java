@@ -3,18 +3,20 @@ package com.springboot.airbnb.entity;
 
 import com.springboot.airbnb.entity.enums.BookingStatus;
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Set;
 
 @Entity
 @Getter
 @Setter
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class Booking {
 
 
@@ -67,6 +69,9 @@ public class Booking {
             inverseJoinColumns = @JoinColumn(name="guestId")
     )
     private Set<Guest> guests;
+
+    @Column(nullable = false, scale = 2, precision = 10)
+    private BigDecimal amount;
 
 
 }
