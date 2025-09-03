@@ -12,6 +12,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -59,14 +60,14 @@ public class BookingServiceImpl implements BookingService {
         }
         inventoryRepository.saveAll(inventories);
 
-        User user = new User();
-        user.setUserId(1L);
+//        User user = new User();
+//        user.setUserId(1L);
 
         Booking booking = Booking.builder()
                 .amount(BigDecimal.valueOf(100))
                 .checkInDate(bookingRequest.getCheckInDate())
                 .checkOutDate(bookingRequest.getCheckOutDate())
-                .user(getUserDummy())
+                .user(getCurrentUser())
                 .status(BookingStatus.RESERVED)
                 .hotel(hotel)
                 .room(room)
@@ -83,6 +84,10 @@ public class BookingServiceImpl implements BookingService {
                 .findById(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("The bookingId was not found : " + bookingId));
 
+        if(!booking.getUser().equals(getCurrentUser())) {
+            throw new IllegalArgumentException("The user is not same");
+        }
+
         if (!booking.getStatus().equals(BookingStatus.RESERVED)) {
             throw new IllegalArgumentException("The rooms are not reserved for the mentioned dates");
         }
@@ -96,7 +101,7 @@ public class BookingServiceImpl implements BookingService {
                     .name(guestDto.getName())
                     .gender(guestDto.getGender())
                     .age(guestDto.getAge())
-                    .user(getUserDummy())
+                    .user(getCurrentUser())
                     .build();
             Guest savedUser = guestRepostitory.save(newGuest);
             booking.getGuests().add(savedUser);
@@ -105,9 +110,7 @@ public class BookingServiceImpl implements BookingService {
         return modelMapper.map(bookingRepository.save(booking), BookingDto.class);
     }
 
-    public static User getUserDummy() {
-        User user = new User();
-        user.setUserId(1L);
-        return user;
+    public static User getCurrentUser() {
+        return (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }
 }

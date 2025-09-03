@@ -4,14 +4,16 @@ import com.springboot.airbnb.dto.HotelDto;
 import com.springboot.airbnb.entity.Amnety;
 import com.springboot.airbnb.entity.Hotel;
 import com.springboot.airbnb.entity.Photo;
+import com.springboot.airbnb.entity.User;
+import com.springboot.airbnb.exceptions.ResourceNotFoundException;
 import com.springboot.airbnb.repository.HotelRepository;
 import com.springboot.airbnb.service.HotelService;
-import com.springboot.airbnb.exceptions.ResourceNotFoundException;
 import com.springboot.airbnb.service.InventoryService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -33,6 +35,9 @@ public class HotelServiceImpl implements HotelService {
         Hotel hotelToBeSaved = modelMapper.map(hotelDto, Hotel.class);
         hotelToBeSaved.setIsActive(false);
 
+
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        hotelToBeSaved.setOwner(user);
 
         // Convert photos DTO -> entity
         List<Photo> photos = hotelDto.getPhotos().stream()
@@ -67,7 +72,13 @@ public class HotelServiceImpl implements HotelService {
     @Override
     public HotelDto getHotelById(Long hotelId) {
         log.info("Getting hotel with id:{}", hotelId);
+
+
         Hotel hotel = hotelRepository.findById(hotelId).orElseThrow(() -> new ResourceNotFoundException("Hotel not found with id:" + hotelId));
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (!user.equals(hotel.getOwner())) {
+            throw new IllegalArgumentException("The hotel is not owned by the current user.");
+        }
         return modelMapper.map(hotel, HotelDto.class);
     }
 
@@ -78,6 +89,10 @@ public class HotelServiceImpl implements HotelService {
         Hotel hotel = hotelRepository.findById(hotelId).orElseThrow(() -> new ResourceNotFoundException("the hotel was not found with hotel id: " + hotelId));
 //        List<Photo> photos = hotelDto.getPhotos();
 //        List<Amnety> amneties = hotelDto.getAmenities();
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (!user.equals(hotel.getOwner())) {
+            throw new IllegalArgumentException("The hotel is not owned by the current user.");
+        }
         hotel.getPhotos().clear();
         for (Photo photoDto : hotelDto.getPhotos()) {
             Photo photo = new Photo();
@@ -111,6 +126,10 @@ public class HotelServiceImpl implements HotelService {
     public Boolean deleteHotelById(Long hotelId) {
         log.info("Deleting the hotel with hotel Id:{}", hotelId);
         Hotel hotel = hotelRepository.findById(hotelId).orElseThrow(() -> new ResourceNotFoundException("the hotel was not found with hotel id: " + hotelId));
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (!user.equals(hotel.getOwner())) {
+            throw new IllegalArgumentException("The hotel is not owned by the current user.");
+        }
         for (var room : hotel.getRooms()) {
             inventoryService.deleteInventory(room);
         }
@@ -122,6 +141,10 @@ public class HotelServiceImpl implements HotelService {
     public HotelDto deletePhotoForHotelById(Long hotelId, Long photoId) {
         log.info("Deleting the photo with with photoId {} in hotel with hotelId {}", photoId, hotelId);
         Hotel hotel = hotelRepository.findById(hotelId).orElseThrow(() -> new ResourceNotFoundException("Hotel with hotelid not found: " + hotelId));
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (!user.equals(hotel.getOwner())) {
+            throw new IllegalArgumentException("The hotel is not owned by the current user.");
+        }
         List<Photo> photos = hotel.getPhotos();
         for (int i = 0; i < photos.size(); i++) {
             Photo photo = photos.get(i);
@@ -140,6 +163,10 @@ public class HotelServiceImpl implements HotelService {
     public HotelDto activateHotelById(Long hotelId) {
         log.info("Activating hotel with hotelId {}", hotelId);
         Hotel hotel = hotelRepository.findById(hotelId).orElseThrow(() -> new ResourceNotFoundException("Hotel with hotelid not found: " + hotelId));
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (!user.equals(hotel.getOwner())) {
+            throw new IllegalArgumentException("The hotel is not owned by the current user.");
+        }
         hotel.setIsActive(true);
         Hotel savedHotel = hotelRepository.save(hotel);
         for (var room : hotel.getRooms()) {

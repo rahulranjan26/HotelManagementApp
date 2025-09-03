@@ -17,8 +17,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Arrays;
+import java.util.List;
+
 @RestController
-@RequestMapping(path="/auth")
+@RequestMapping(path = "/auth")
 @Slf4j
 @RequiredArgsConstructor
 public class AuthController {
@@ -30,17 +33,29 @@ public class AuthController {
         return new ResponseEntity<>(authService.signUp(signUpDTO), HttpStatus.OK);
     }
 
-    @PostMapping(path="/login")
+    @PostMapping(path = "/login")
     public ResponseEntity<LoginResponseDTO> login(@RequestBody LoginDto loginDto, HttpServletRequest request, HttpServletResponse response) {
         String[] tokens = authService.login(loginDto);
         LoginResponseDTO responseDto = LoginResponseDTO.builder().accessToken(tokens[0]).build();
 
-        Cookie cookie  = new Cookie("refreshToken", tokens[1]);
+        Cookie cookie = new Cookie("refreshToken", tokens[1]);
         cookie.setHttpOnly(true);
         response.addCookie(cookie);
         return new ResponseEntity<>(responseDto, HttpStatus.OK);
 
+    }
 
+    @PostMapping("/refresh")
+    public ResponseEntity<String> refresh(HttpServletRequest request, HttpServletResponse response) {
+        List<Cookie> allCookiesFromRequest = Arrays.stream(request.getCookies()).toList();
+        for (var cookie : allCookiesFromRequest) {
+            if (cookie.getName().equals("refreshToken")) {
+                String refreshToken = cookie.getValue(); // ✅ Fixed!
+                String newAccessToken = authService.refresh(refreshToken);
+                return new ResponseEntity<>(newAccessToken, HttpStatus.OK);
+            }
+        }
+        return new ResponseEntity<>("Refresh token not found", HttpStatus.UNAUTHORIZED);
     }
 
 }

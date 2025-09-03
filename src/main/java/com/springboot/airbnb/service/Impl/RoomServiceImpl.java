@@ -1,13 +1,9 @@
 package com.springboot.airbnb.service.Impl;
 
 import com.springboot.airbnb.dto.RoomDto;
-import com.springboot.airbnb.entity.Amnety;
-import com.springboot.airbnb.entity.Hotel;
-import com.springboot.airbnb.entity.Photo;
-import com.springboot.airbnb.entity.Room;
+import com.springboot.airbnb.entity.*;
 import com.springboot.airbnb.exceptions.ResourceNotFoundException;
 import com.springboot.airbnb.repository.HotelRepository;
-import com.springboot.airbnb.repository.PhotoRepository;
 import com.springboot.airbnb.repository.RoomRepository;
 import com.springboot.airbnb.service.AmnetyService;
 import com.springboot.airbnb.service.InventoryService;
@@ -16,7 +12,7 @@ import com.springboot.airbnb.service.RoomService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.modelmapper.ModelMapper;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -45,6 +41,10 @@ public class RoomServiceImpl implements RoomService {
                 .totalCount(roomDto.getTotalCount())
                 .build();
         Hotel hotel = hotelRepository.findById(hotelId).orElseThrow(() -> new ResourceNotFoundException("Hotel not found with id:" + hotelId));
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (!user.equals(hotel.getOwner())) {
+            throw new IllegalArgumentException("The hotel is not owned by the current user.");
+        }
         newRoom.setHotel(hotel);
         Room savedRoom = roomRepository.save(newRoom);
         List<Photo> createdPhotos = new ArrayList<>();
@@ -78,6 +78,7 @@ public class RoomServiceImpl implements RoomService {
     public List<RoomDto> getAllRoomInHotel(Long hotelId) {
         log.info("So we are finding a all room");
         Hotel hotel = hotelRepository.findById(hotelId).orElseThrow(() -> new ResourceNotFoundException("Hotel not found with id:" + hotelId));
+
         List<Room> rooms = roomRepository.findByHotel(hotel);
         List<RoomDto> roomDtos = new ArrayList<>();
         for (var room : rooms) {
@@ -99,6 +100,7 @@ public class RoomServiceImpl implements RoomService {
     public RoomDto getRoomById(Long roomId) {
         log.info("Room with Id: {} is being queries", roomId);
         Room room = roomRepository.findById(roomId).orElseThrow(() -> new ResourceNotFoundException("Room not found with id:" + roomId));
+
         RoomDto dto = RoomDto.builder()
                 .roomId(room.getRoomId())
                 .type(room.getType())
@@ -115,6 +117,10 @@ public class RoomServiceImpl implements RoomService {
     public Boolean deleteRoomById(Long roomId) {
         log.info("Room with Id: {} is being deleted", roomId);
         Room room = roomRepository.findById(roomId).orElseThrow(() -> new ResourceNotFoundException("Room not found with id:" + roomId));
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (!user.equals(room.getHotel().getOwner())) {
+            throw new IllegalArgumentException("The hotel is not owned by the current user.");
+        }
         inventoryService.deleteInventory(room);
         roomRepository.delete(room);
         return true;

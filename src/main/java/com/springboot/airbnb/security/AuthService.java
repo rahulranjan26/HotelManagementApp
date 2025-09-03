@@ -6,6 +6,7 @@ import com.springboot.airbnb.dto.SignUpDTO;
 import com.springboot.airbnb.dto.UserDto;
 import com.springboot.airbnb.entity.User;
 import com.springboot.airbnb.entity.enums.Role;
+import com.springboot.airbnb.exceptions.ResourceNotFoundException;
 import com.springboot.airbnb.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -57,6 +58,15 @@ public class AuthService {
         tokens[0] = jwtService.generateAccessToken(user);
         tokens[1] = jwtService.getRefreshToken(user);
         return tokens;
+
+    }
+
+    public String refresh(String refreshToken) {
+        Long userId = jwtService.getUserId(refreshToken);
+
+        User user = userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User doesnt exist"));
+
+        return jwtService.generateAccessToken(user);
 
     }
 

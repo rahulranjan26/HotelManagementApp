@@ -52,7 +52,7 @@ public class Hotel {
     @Column(nullable=false)
     private Boolean isActive;
 
-    @ManyToOne
+    @ManyToOne(optional=false)
     private User owner;
 
 
