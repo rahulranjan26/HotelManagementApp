@@ -50,7 +50,7 @@ public class AuthController {
         List<Cookie> allCookiesFromRequest = Arrays.stream(request.getCookies()).toList();
         for (var cookie : allCookiesFromRequest) {
             if (cookie.getName().equals("refreshToken")) {
-                String refreshToken = cookie.getValue(); // ✅ Fixed!
+                String refreshToken = cookie.getValue(); //  Fixed!
                 String newAccessToken = authService.refresh(refreshToken);
                 return new ResponseEntity<>(newAccessToken, HttpStatus.OK);
             }
