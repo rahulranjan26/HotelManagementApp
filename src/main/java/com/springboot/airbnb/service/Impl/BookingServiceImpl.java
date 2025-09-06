@@ -8,10 +8,14 @@ import com.springboot.airbnb.entity.enums.BookingStatus;
 import com.springboot.airbnb.exceptions.ResourceNotFoundException;
 import com.springboot.airbnb.repository.*;
 import com.springboot.airbnb.service.BookingService;
+import com.springboot.airbnb.service.CheckOutService;
+import com.stripe.model.Event;
+import com.stripe.model.checkout.Session;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -30,14 +34,18 @@ public class BookingServiceImpl implements BookingService {
     private final HotelRepository hotelRepository;
     private final RoomRepository roomRepository;
     private final ModelMapper modelMapper;
-    private final GuestRepository guestRepostitory;
+    private final GuestRepository guestRepository;
+    private final CheckOutService checkOutService;
+
+    @Value("${frontend.url}")
+    private String url;
 
     @Override
     @Transactional
     public BookingDto openABooking(BookingRequest bookingRequest) {
 
         log.info("We are booking rooms for hotel with hotel id : {}", bookingRequest.getHotelId());
-        Hotel hotel = hotelRepository.findById(bookingRequest.getHotelId()).orElseThrow(() -> new ResourceNotFoundException("Hotel with  not found with Id : " + bookingRequest.getHotelId()));
+        Hotel hotel = hotelRepository.findById(bookingRequest.getHotelId()).orElseThrow(() -> new ResourceNotFoundException("Hotel not found with Id : " + bookingRequest.getHotelId()));
         Room room = roomRepository.findById(bookingRequest.getRoomId()).orElseThrow(() -> new ResourceNotFoundException("Room with id : " + bookingRequest.getRoomId()));
         long numberOfDays = ChronoUnit.DAYS.between(bookingRequest.getCheckInDate(), bookingRequest.getCheckOutDate()) + 1;
 
@@ -71,20 +79,20 @@ public class BookingServiceImpl implements BookingService {
                 .status(BookingStatus.RESERVED)
                 .hotel(hotel)
                 .room(room)
-                .payment(null)
                 .roomsCount(bookingRequest.getRoomsCount())
                 .build();
         return modelMapper.map(bookingRepository.save(booking), BookingDto.class);
     }
 
     @Override
+    @Transactional
     public BookingDto addTheGuestToTheBooking(Long bookingId, List<GuestDto> guests) {
         log.info("We are adding guest to the booking with bookingId : {}", bookingId);
         Booking booking = bookingRepository
                 .findById(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("The bookingId was not found : " + bookingId));
 
-        if(!booking.getUser().equals(getCurrentUser())) {
+        if (!booking.getUser().equals(getCurrentUser())) {
             throw new IllegalArgumentException("The user is not same");
         }
 
@@ -103,11 +111,62 @@ public class BookingServiceImpl implements BookingService {
                     .age(guestDto.getAge())
                     .user(getCurrentUser())
                     .build();
-            Guest savedUser = guestRepostitory.save(newGuest);
+            Guest savedUser = guestRepository.save(newGuest);
             booking.getGuests().add(savedUser);
         }
         booking.setStatus(BookingStatus.GUEST_ADDED);
         return modelMapper.map(bookingRepository.save(booking), BookingDto.class);
+    }
+
+    @Override
+    @Transactional
+    public String initiatePayment(Long bookingId) {
+        Booking booking = bookingRepository.findById(bookingId).orElseThrow(() -> new ResourceNotFoundException("The booking Id is not found: " + bookingId));
+
+        if (!booking.getUser().equals(getCurrentUser())) {
+            throw new IllegalArgumentException("The user is not same");
+        }
+        if (booking.getCreatedAt().plusMinutes(10).isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("The ticket has expired. PLease book new ticket");
+        }
+
+        String sessionUrl = checkOutService.getCheckOutSession(booking, url + "/payments/success", url + "/payments/failure");
+
+        booking.setStatus(BookingStatus.PAYMENT_PENDING);
+        bookingRepository.save(booking);
+        return sessionUrl;
+    }
+
+    @Override
+    public void capturePayment(Event event) {
+        if ("checkout.session.completed".equals(event.getType())) {
+            Session session = (Session) event.getDataObjectDeserializer().getObject().orElse(null);
+            if (session != null) {
+                String sessionId = session.getId();
+                Booking booking = bookingRepository.findByPaymentSessionId(sessionId).orElseThrow(
+                        () -> new ResourceNotFoundException("The Booking was not found " + sessionId)
+                );
+                booking.setStatus(BookingStatus.CONFIRMED);
+                bookingRepository.save(booking);
+
+                inventoryRepository.findAndLockReservedInventory(
+                        booking.getRoom().getRoomId(),
+                        booking.getCheckInDate(),
+                        booking.getCheckOutDate(),
+                        booking.getRoomsCount());
+
+                inventoryRepository.confirmBooking(
+                        booking.getRoom().getRoomId(),
+                        booking.getCheckInDate(),
+                        booking.getCheckOutDate(),
+                        booking.getRoomsCount());
+
+                log.info("Booking confirmed for session Id : {}", sessionId);
+
+            }
+        } else {
+            log.warn("Unhandled event type : {}", event.getType());
+        }
     }
 
     public static User getCurrentUser() {

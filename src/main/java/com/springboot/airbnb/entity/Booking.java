@@ -54,9 +54,7 @@ public class Booking {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name="paymentId")
-    private Payment payment;
+
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -73,5 +71,7 @@ public class Booking {
     @Column(nullable = false, scale = 2, precision = 10)
     private BigDecimal amount;
 
+    @Column(unique=true)
+    private String paymentSessionId;
 
 }

@@ -1,6 +1,5 @@
 package com.springboot.airbnb.dto;
 
-import com.springboot.airbnb.entity.Payment;
 import com.springboot.airbnb.entity.enums.BookingStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -20,7 +19,6 @@ public class BookingDto {
     private Integer roomsCount;
     private LocalDateTime checkInDate;
     private LocalDateTime checkOutDate;
-    private Payment payment;
     private BookingStatus status;
     private Set<GuestDto> guests;
 

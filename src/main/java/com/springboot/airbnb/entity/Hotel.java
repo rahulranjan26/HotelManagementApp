@@ -3,19 +3,20 @@ package com.springboot.airbnb.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.proxy.HibernateProxy;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 @Entity
 @Getter
 @Setter
-@Data
+@ToString
+@RequiredArgsConstructor
 @Table(name="hotel")
 public class Hotel {
 
@@ -47,6 +48,7 @@ public class Hotel {
 
     @OneToMany(mappedBy = "hotel", orphanRemoval=true, cascade = CascadeType.ALL)
     @JsonIgnore
+    @ToString.Exclude
     private List<Room> rooms;
 
     @Column(nullable=false)
@@ -56,6 +58,19 @@ public class Hotel {
     private User owner;
 
 
+    @Override
+    public final boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null) return false;
+        Class<?> oEffectiveClass = o instanceof HibernateProxy ? ((HibernateProxy) o).getHibernateLazyInitializer().getPersistentClass() : o.getClass();
+        Class<?> thisEffectiveClass = this instanceof HibernateProxy ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass() : this.getClass();
+        if (thisEffectiveClass != oEffectiveClass) return false;
+        Hotel hotel = (Hotel) o;
+        return getHotelId() != null && Objects.equals(getHotelId(), hotel.getHotelId());
+    }
 
-
+    @Override
+    public final int hashCode() {
+        return this instanceof HibernateProxy ? ((HibernateProxy) this).getHibernateLazyInitializer().getPersistentClass().hashCode() : getClass().hashCode();
+    }
 }
