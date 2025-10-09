@@ -85,8 +85,23 @@ public interface InventoryRepository extends JpaRepository<Inventory, Long> {
             and i.closed=false
             
             """)
-    @Lock(LockModeType.PESSIMISTIC_WRITE)
     void confirmBooking(
+            @Param("roomId") Long roomId,
+            @Param("checkInDate") LocalDateTime checkInDate,
+            @Param("checkOutDate") LocalDateTime checkOutDate,
+            @Param("roomsCount") Integer roomsCount);
+
+    @Modifying
+    @Query("""
+            update Inventory i
+            set i.bookedCount = i.bookedCount-:roomsCount
+            where i.room.roomId=:roomId
+            and i.date between :checkInDate and :checkOutDate
+            and (i.totalCount-i.bookedCount) >= :roomsCount
+            and i.closed=false
+            
+            """)
+    void cancelBooking(
             @Param("roomId") Long roomId,
             @Param("checkInDate") LocalDateTime checkInDate,
             @Param("checkOutDate") LocalDateTime checkOutDate,

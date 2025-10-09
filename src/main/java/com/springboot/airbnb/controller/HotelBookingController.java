@@ -13,25 +13,32 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping(path="/bookings")
+@RequestMapping(path = "/bookings")
 @RequiredArgsConstructor
 public class HotelBookingController {
     private final BookingService bookingService;
-    @PostMapping(path="/init")
-    public ResponseEntity<BookingDto> openABooking(@RequestBody BookingRequest bookingRequest){
+
+    @PostMapping(path = "/init")
+    public ResponseEntity<BookingDto> openABooking(@RequestBody BookingRequest bookingRequest) {
         return ResponseEntity.ok(bookingService.openABooking(bookingRequest));
     }
 
-    @PostMapping(path="/{bookingId}/addGuests")
+    @PostMapping(path = "/{bookingId}/addGuests")
     public ResponseEntity<BookingDto> addTheGuestToTheBooking(@PathVariable Long bookingId,
-                                                              @RequestBody List<GuestDto> guests){
-        return ResponseEntity.ok(bookingService.addTheGuestToTheBooking(bookingId,guests));
+                                                              @RequestBody List<GuestDto> guests) {
+        return ResponseEntity.ok(bookingService.addTheGuestToTheBooking(bookingId, guests));
     }
 
-    @PostMapping(path="/{bookingId}/payments")
-    public ResponseEntity<Map<String,String>> initiatePayment(@PathVariable Long bookingId){
+    @PostMapping(path = "/{bookingId}/payments")
+    public ResponseEntity<Map<String, String>> initiatePayment(@PathVariable Long bookingId) {
         String sessionUrl = bookingService.initiatePayment(bookingId);
-        return ResponseEntity.ok(Map.of("SessionUrl",sessionUrl));
+        return ResponseEntity.ok(Map.of("SessionUrl", sessionUrl));
+    }
+
+    @PostMapping(path = "/{bookingId}/cancel")
+    public ResponseEntity<Void> cancelBooking(@PathVariable Long bookingId) {
+        bookingService.cancelBooking(bookingId);
+        return ResponseEntity.noContent().build();
     }
 
 

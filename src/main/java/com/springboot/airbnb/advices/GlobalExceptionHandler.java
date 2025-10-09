@@ -54,7 +54,7 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(new ApiResponse<>(apiError), apiError.getStatus());
     }
 
-    @ExceptionHandler(Exception.class)
+//    @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<?>> handleResourceNotFoundException(Exception ex) {
         ApiError apiError = ApiError.builder()
                 .message(ex.getMessage())

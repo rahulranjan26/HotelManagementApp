@@ -9,8 +9,11 @@ import com.springboot.airbnb.exceptions.ResourceNotFoundException;
 import com.springboot.airbnb.repository.*;
 import com.springboot.airbnb.service.BookingService;
 import com.springboot.airbnb.service.CheckOutService;
+import com.stripe.exception.StripeException;
 import com.stripe.model.Event;
+import com.stripe.model.Refund;
 import com.stripe.model.checkout.Session;
+import com.stripe.param.RefundCreateParams;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,6 +48,7 @@ public class BookingServiceImpl implements BookingService {
     public BookingDto openABooking(BookingRequest bookingRequest) {
 
         log.info("We are booking rooms for hotel with hotel id : {}", bookingRequest.getHotelId());
+//        System.out.println(hotelRepository.findAll());
         Hotel hotel = hotelRepository.findById(bookingRequest.getHotelId()).orElseThrow(() -> new ResourceNotFoundException("Hotel not found with Id : " + bookingRequest.getHotelId()));
         Room room = roomRepository.findById(bookingRequest.getRoomId()).orElseThrow(() -> new ResourceNotFoundException("Room with id : " + bookingRequest.getRoomId()));
         long numberOfDays = ChronoUnit.DAYS.between(bookingRequest.getCheckInDate(), bookingRequest.getCheckOutDate()) + 1;
@@ -167,6 +171,49 @@ public class BookingServiceImpl implements BookingService {
         } else {
             log.warn("Unhandled event type : {}", event.getType());
         }
+    }
+
+    @Override
+    @Transactional
+    public void cancelBooking(Long bookingId) {
+        Booking booking = bookingRepository.findById(bookingId).orElseThrow(() -> new ResourceNotFoundException("The booking Id is not found: " + bookingId));
+
+        if (!booking.getUser().equals(getCurrentUser())) {
+            throw new IllegalArgumentException("The user is not same");
+        }
+
+        if (!booking.getStatus().equals(BookingStatus.CONFIRMED))
+            throw new ResourceNotFoundException("The booking is not yet confirmed.");
+
+        booking.setStatus(BookingStatus.CANCELLED);
+        bookingRepository.save(booking);
+
+        inventoryRepository.findAndLockReservedInventory(
+                booking.getRoom().getRoomId(),
+                booking.getCheckInDate(),
+                booking.getCheckOutDate(),
+                booking.getRoomsCount());
+
+        inventoryRepository.cancelBooking(
+                booking.getRoom().getRoomId(),
+                booking.getCheckInDate(),
+                booking.getCheckOutDate(),
+                booking.getRoomsCount());
+        log.info("Booking cancelled for booking Id : {}", booking.getBookingId());
+
+        try {
+            Session session = Session.retrieve(booking.getPaymentSessionId());
+            RefundCreateParams refundParams = RefundCreateParams.builder()
+                    .setPaymentIntent(session.getPaymentIntent())
+                    .build();
+
+            Refund.create(refundParams);
+
+        } catch (StripeException e) {
+            throw new RuntimeException(e);
+        }
+
+
     }
 
     public static User getCurrentUser() {
