@@ -216,6 +216,16 @@ public class BookingServiceImpl implements BookingService {
 
     }
 
+    @Override
+    public String getBookingStatus(Long bookingId) {
+        Booking booking = bookingRepository.findById(bookingId).orElseThrow(() -> new ResourceNotFoundException("The booking Id is not found: " + bookingId));
+
+        if (!booking.getUser().equals(getCurrentUser())) {
+            throw new IllegalArgumentException("The user is not same");
+        }
+        return booking.getStatus().name();
+    }
+
     public static User getCurrentUser() {
         return (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     }
