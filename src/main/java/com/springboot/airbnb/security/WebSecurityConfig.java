@@ -38,6 +38,7 @@ public class WebSecurityConfig {
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/auth/**").anonymous()
                         .requestMatchers("/bookings/**").authenticated()
+                        .requestMatchers("/users/**").authenticated()
                         .anyRequest().permitAll())
                 .exceptionHandling(exceptionHandlingConfig -> exceptionHandlingConfig.accessDeniedHandler(accessDeniedHandler()));
 

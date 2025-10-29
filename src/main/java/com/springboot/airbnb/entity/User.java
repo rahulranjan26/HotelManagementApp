@@ -1,5 +1,6 @@
 package com.springboot.airbnb.entity;
 
+import com.springboot.airbnb.entity.enums.Gender;
 import com.springboot.airbnb.entity.enums.Role;
 import jakarta.persistence.*;
 import lombok.*;
@@ -7,6 +8,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.Set;
@@ -22,7 +24,6 @@ import java.util.stream.Collectors;
 public class User implements UserDetails {
 
 
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long userId;
@@ -36,6 +37,11 @@ public class User implements UserDetails {
     private String password;
 
     private String name;
+
+    private LocalDateTime dateOfBirth;
+
+    @Enumerated(EnumType.STRING)
+    private Gender gender;
 
 
     @Enumerated(EnumType.STRING)

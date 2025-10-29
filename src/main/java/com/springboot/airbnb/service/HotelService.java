@@ -2,6 +2,8 @@ package com.springboot.airbnb.service;
 
 import com.springboot.airbnb.dto.HotelDto;
 
+import java.util.List;
+
 public interface HotelService {
 
     HotelDto createNewHotel(HotelDto hotelDto);
@@ -15,4 +17,6 @@ public interface HotelService {
     HotelDto deletePhotoForHotelById(Long hotelId, Long photoId);
 
     HotelDto activateHotelById(Long hotelId);
+
+    List<HotelDto> getAllHotels();
 }

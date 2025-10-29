@@ -12,6 +12,7 @@ import com.springboot.airbnb.service.RoomService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.modelmapper.ModelMapper;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -30,6 +31,7 @@ public class RoomServiceImpl implements RoomService {
     private final AmnetyService amnetyService;
     private final InventoryService inventoryService;
     private final HotelRepository hotelRepository;
+    private final ModelMapper modelMapper;
 
     @Override
     public RoomDto createNewRoom(Long hotelId, RoomDto roomDto) {
@@ -124,6 +126,22 @@ public class RoomServiceImpl implements RoomService {
         inventoryService.deleteInventory(room);
         roomRepository.delete(room);
         return true;
+    }
+
+    @Override
+    @Transactional
+    public RoomDto updateRoomById(Long hotelId, Long roomId, RoomDto roomDto) {
+        Hotel hotel = hotelRepository.findById(hotelId).orElseThrow(() -> new ResourceNotFoundException("Hotel not found with id:" + hotelId));
+        Room room = roomRepository.findById(roomId).orElseThrow(() -> new ResourceNotFoundException("Room not found with id:" + roomId));
+
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (!user.equals(hotel.getOwner())) {
+            throw new IllegalArgumentException("The hotel is not owned by the current user.");
+        }
+
+        modelMapper.map(roomDto, room);
+        room.setRoomId(roomId);
+        return modelMapper.map(roomRepository.save(room), RoomDto.class);
     }
 
 

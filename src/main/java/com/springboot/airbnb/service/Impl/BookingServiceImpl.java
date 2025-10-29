@@ -3,6 +3,7 @@ package com.springboot.airbnb.service.Impl;
 import com.springboot.airbnb.dto.BookingDto;
 import com.springboot.airbnb.dto.BookingRequest;
 import com.springboot.airbnb.dto.GuestDto;
+import com.springboot.airbnb.dto.HotelReportDto;
 import com.springboot.airbnb.entity.*;
 import com.springboot.airbnb.entity.enums.BookingStatus;
 import com.springboot.airbnb.exceptions.ResourceNotFoundException;
@@ -19,13 +20,16 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -225,6 +229,53 @@ public class BookingServiceImpl implements BookingService {
         }
         return booking.getStatus().name();
     }
+
+    @Override
+    public List<BookingDto> getBookingsByHotelId(Long hotelId) {
+        Hotel hotel = hotelRepository.findById(hotelId)
+                .orElseThrow(() -> new ResourceNotFoundException("The hotel Id is not found: " + hotelId));
+        User user = getCurrentUser();
+        if (!user.equals(hotel.getOwner()))
+            throw new AccessDeniedException("You are not the owner of this hotel");
+        List<Booking> bookings = bookingRepository.findByHotel(hotel);
+        return bookings.stream()
+                .map((element) -> modelMapper.map(element, BookingDto.class))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public HotelReportDto getHotelReport(Long hotelId, LocalDateTime startDate, LocalDateTime endDate) {
+        Hotel hotel = hotelRepository.findById(hotelId).orElseThrow(() -> new ResourceNotFoundException("The hotel Id is not found: " + hotelId));
+        User user = getCurrentUser();
+        if (!user.equals(hotel.getOwner()))
+            throw new AccessDeniedException("You are not the owner of this hotel");
+
+        List<Booking> bookings = bookingRepository.findByHotelAndCreatedAtBetween(hotel, startDate, endDate);
+
+        int totalBookings = (int) bookings.stream()
+                .filter(booking -> booking.getStatus().equals(BookingStatus.CONFIRMED))
+                .count();
+
+        BigDecimal totalRevenue = bookings.stream()
+                .filter(booking -> booking.getStatus().equals(BookingStatus.CONFIRMED))
+                .map(Booking::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal averageRevenuePerDay = totalBookings==0?BigDecimal.ZERO: totalRevenue.divide(BigDecimal.valueOf(totalBookings), RoundingMode.HALF_UP);
+
+        return new HotelReportDto(hotelId,totalRevenue,averageRevenuePerDay,totalBookings);
+    }
+
+    @Override
+    public List<BookingDto> getMyBookings() {
+        User user = getCurrentUser();
+        List<Booking> myBookings = bookingRepository.findByUser(user);
+        return myBookings.stream()
+                .map((element) -> modelMapper.map(element, BookingDto.class))
+                .toList();
+
+    }
+
 
     public static User getCurrentUser() {
         return (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
